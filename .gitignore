@@ -1,3 +1,9 @@
+#MAC
+.DS_Store
+#foundry
+out/*
+lib/*
+cache/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
