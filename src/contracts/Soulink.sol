@@ -45,6 +45,7 @@ contract Soulink is ERC1155 {
 
     // factory would deploy this 
     constructor(address _factory) ERC1155("") {
+        require(_factory != address(0));
         factory = _factory;
     }
 
@@ -63,6 +64,8 @@ contract Soulink is ERC1155 {
         uint256 _noParticipants = _owners.length;
         require(_signatures.length == _noParticipants * 65, "NOT ENOUGH SIGS");
         uint256 tokenId = tokenIdCounter.current();
+        _setTokenCid(tokenId, _tokenCid);
+        tokenIdCounter.increment();
         address p;
         address owner;
         uint8 v;
@@ -71,7 +74,12 @@ contract Soulink is ERC1155 {
         for (uint256 i = 0; i < _noParticipants; ++i) {
             p = _recover(_signatures, i,  _owners, _tokenCid);
             owner = _owners[i];
-
+            // if the owner has already minted this hash
+            if (isHashUsed[messageHash][owner]) {
+                revert HashAlreadyMinted(messageHash, owner);
+            }
+            isHashUsed[messageHash][owner] = true;
+            p2pWhitelist[tokenId][owner] = true;
             // this check does not cover CA that is under construction; 
             // refer to https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Address.sol#L20
             if (Address.isContract(owner)) {
@@ -83,17 +91,8 @@ contract Soulink is ERC1155 {
                 // if the resolved address from signature does not match the delegatee
                 require(p == owner, "WRONG RESOLVED OWNER");
             }
-            
-            // if the owner has already minted this hash
-            if (isHashUsed[messageHash][owner]) {
-                revert HashAlreadyMinted(messageHash, owner);
-            }
-            isHashUsed[messageHash][owner] = true;
-            p2pWhitelist[tokenId][owner] = true;
             emit InitializeTokenAddress(tokenId, owner);
         }
-        _setTokenCid(tokenId, _tokenCid);
-        tokenIdCounter.increment();
         emit InitializeToken(tokenId, _tokenCid);
         return true;
     }
@@ -139,7 +138,7 @@ contract Soulink is ERC1155 {
         }
     }
 
-    function EthSign(bytes32 _rawMessage)
+    function ethSign(bytes32 _rawMessage)
         private
         pure
         returns (bytes32)
@@ -166,7 +165,7 @@ contract Soulink is ERC1155 {
     {
         // embed soulink-specific uid into the hash
         bytes32 rawMessageHash = keccak256(abi.encode(_owners, uid, _tokenCid));
-        bytes32 ethSig = EthSign(rawMessageHash);
+        bytes32 ethSig = ethSign(rawMessageHash);
         return ethSig;
     }
 

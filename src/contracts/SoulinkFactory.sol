@@ -27,9 +27,9 @@ contract SoulinkFactory is Ownable {
     // hash of description (uid) to contract address 
     mapping(bytes32 => address) public soulinkDesc;
 
-    address[] public Soulinks;
+    address[] public soulinks;
 
-    uint256 public SoulinkLength;
+    uint256 public soulinkLength;
 
     event AddSoulink(bytes32 indexed uid, address nftAddress, uint id, address impl);
 
@@ -39,6 +39,7 @@ contract SoulinkFactory is Ownable {
     }
 
     function upgradeSoulinkImpl(address _newImpl, string memory _version) external onlyOwner returns (address) {
+        require(_newImpl != address(0));
         impl = _newImpl;
         implVersion = _version;
         emit SetSoulinkImpl(_newImpl, _version);
@@ -55,13 +56,14 @@ contract SoulinkFactory is Ownable {
         bytes32 uid = keccak256(abi.encode(_description));
         require(soulinkDesc[uid] == address(0), 'SOULINK DESCRIPTION ALREADY EXISTED');
         address instance = Clones.cloneDeterministic(impl, uid);
+        require(instance != address(0));
+        soulinkLength += 1;
+        soulinks.push(instance);
+        soulinkDesc[uid] = instance;
         bytes memory _dataPayload = abi.encodeWithSignature("initialize(string)", _description);
         bool success;
         (success, ) = instance.call{value: msg.value}(_dataPayload);
         require(success, "SOULINK INITIALIZE FAILS");
-        soulinkDesc[uid] = instance;
-        Soulinks.push(instance);
-        SoulinkLength += 1;
         emit AddSoulink(uid, instance, SoulinkLength, impl);
         return instance;
     }

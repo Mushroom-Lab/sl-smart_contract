@@ -52,12 +52,12 @@ contract Profile is Ownable {
     }
 
         // allow change of this mapping using off-chain signature similar to EIP2612
-    function permit(address _owner, address _delegatee, uint8 v, bytes32 r, bytes32 s) external {
+    function permit(address _Targetedowner, address _delegatee, uint8 v, bytes32 r, bytes32 s) external {
         bytes32 digest = keccak256(
             abi.encodePacked(
                 '\x19\x01',
                 DOMAIN_SEPARATOR,
-                keccak256(abi.encode(PERMIT_TYPEHASH, _owner, _delegatee, nonces[_owner]++))
+                keccak256(abi.encode(PERMIT_TYPEHASH, _Targetedowner, _delegatee, nonces[_Targetedowner]++))
             )
         );
         address recoveredAddress = ecrecover(digest, v, r, s);
